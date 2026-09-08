@@ -3,6 +3,18 @@ const pool = require('../../config/db');
 const fs = require('fs');
 const path = require('path');
 
+// Smart reader that decodes UTF-8 or Windows-1252 without deleting or altering characters
+function readRawFile(filePath) {
+  const buffer = fs.readFileSync(filePath);
+  try {
+    const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+    return utf8Decoder.decode(buffer);
+  } catch (e) {
+    const windowsDecoder = new TextDecoder('windows-1252');
+    return windowsDecoder.decode(buffer);
+  }
+}
+
 function getFieldValue(row, headerPatterns) {
   const keys = Object.keys(row);
   for (const pattern of headerPatterns) {
@@ -17,7 +29,9 @@ function getFieldValue(row, headerPatterns) {
 }
 
 function parseTSV(filePath) {
-  const raw = fs.readFileSync(filePath, 'utf8');
+  let raw = readRawFile(filePath);
+  if (raw.charCodeAt(0) == 0xFEFF) raw = raw.slice(1);
+
   const lines = raw.trim().split(/\r?\n/);
   
   if (lines.length === 0) return [];
@@ -45,8 +59,8 @@ function determineCategory(hochschultyp) {
   const t = (hochschultyp || '').toLowerCase();
   if (t.includes('universit') && !t.includes('fach')) return 'university';
   if (t.includes('fachhochschule') || t.includes('haw')) return 'university of applied sciences';
-  if (t.includes('k\u00fcnst') || t.includes('kunst') || t.includes('musik')) return 'arts college';
-  if (t.includes('p\u00e4dagog') || t.includes('padagog')) return 'pedagogical college';
+  if (t.includes('künst') || t.includes('kunst') || t.includes('musik')) return 'arts college';
+  if (t.includes('pädagog') || t.includes('padagog')) return 'pedagogical college';
   return 'other';
 }
 

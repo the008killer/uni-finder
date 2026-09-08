@@ -6,6 +6,19 @@ const path = require('path');
 // ============================
 // 1. CSV PARSER (Semicolon)
 // ============================
+
+function readRawFile(filePath) {
+  const buffer = fs.readFileSync(filePath);
+  try {
+    const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+    return utf8Decoder.decode(buffer);
+  } catch (e) {
+    const windowsDecoder = new TextDecoder('windows-1252');
+    return windowsDecoder.decode(buffer);
+  }
+}
+
+
 function parseCSVLine(line, separator = ';') {
   const result = [];
   let current = '';
@@ -16,7 +29,7 @@ function parseCSVLine(line, separator = ';') {
     if (char === '"') {
       inQuotes = !inQuotes;
     } else if (char === separator && !inQuotes) {
-      result.push(current);
+      result.push(cleanVal(current));
       current = '';
     } else {
       current += char;
@@ -27,16 +40,18 @@ function parseCSVLine(line, separator = ';') {
 }
 
 function parseCSV(filePath) {
-  const raw = fs.readFileSync(filePath, 'utf8');
+  let raw = readRawFile(filePath);
+  if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+
   const lines = raw.trim().split(/\r?\n/);
   if (lines.length === 0) return [];
 
-  const headers = parseCSVLine(lines[0]).map(h => h.trim());
+  const headers = parseCSVLine(lines[0]).map(h => (h || '').trim());
   return lines.slice(1).map(line => {
     const values = parseCSVLine(line);
     const row = {};
     headers.forEach((header, i) => {
-      row[header] = (values[i] || '').trim();
+      row[header] = values[i] || null;
     });
     return row;
   });
@@ -45,7 +60,7 @@ function parseCSV(filePath) {
 // ============================
 // 2. HELPERS
 // ============================
-function clean(val) {
+function cleanVal(val) {
   if (!val || val.toLowerCase() === 'none' || val === 'N/A') return null;
   return val;
 }
@@ -75,7 +90,7 @@ function detectDegreeType(courseName) {
 }
 
 function parseDuration(durationStr) {
-  const d = clean(durationStr);
+  const d = cleanVal(durationStr);
   if (!d) return null;
   const semMatch = d.match(/(\d+)\s*sem/i);
   if (semMatch) return parseInt(semMatch[1], 10);
@@ -87,7 +102,7 @@ function parseDuration(durationStr) {
 }
 
 function parseTuition(feeStr) {
-  const f = clean(feeStr);
+  const f = cleanVal(feeStr);
   if (!f) return 0;
   const cleaned = f.replace(/[^0-9.,]/g, '').replace(',', '.');
   const fee = parseFloat(cleaned);
@@ -95,7 +110,7 @@ function parseTuition(feeStr) {
 }
 
 function parseLevel(levelStr) {
-  const l = clean(levelStr);
+  const l = cleanVal(levelStr);
   if (!l) return null;
   const levels = l.split(',').map(s => s.trim()).filter(Boolean);
   if (levels.length === 0) return null;
@@ -184,19 +199,19 @@ async function run() {
   const programsToInsert = [];
 
   for (const row of rows) {
-    const courseId = clean(row['Course ID']);
-    const courseName = clean(row['Course Name']);
-    const courseShort = clean(row['Course Short Name']);
-    const subjectName = clean(row['Subject Name']) || 'General';
-    const uniName = clean(row['University Name'] || row['University Name ']);
-    const cityName = clean(row['City Name']);
-    const langInstruction = clean(row['Teaching languages Instruction']);
-    const germanLevel = clean(row['Required German language']);
-    const englishLevel = clean(row['Required English language']);
-    const semesterStart = clean(row['Beginning']);
-    const duration = clean(row['Duration of Programme']);
-    const tuition = clean(row['Tuition Fees']);
-    const courseLink = clean(row['Course Details Link']);
+    const courseId = cleanVal(row['Course ID']);
+    const courseName = cleanVal(row['Course Name']);
+    const courseShort = cleanVal(row['Course Short Name']);
+    const subjectName = cleanVal(row['Subject Name']) || 'General';
+    const uniName = cleanVal(row['University Name'] || row['University Name ']);
+    const cityName = cleanVal(row['City Name']);
+    const langInstruction = cleanVal(row['Teaching languages Instruction']);
+    const germanLevel = cleanVal(row['Required German language']);
+    const englishLevel = cleanVal(row['Required English language']);
+    const semesterStart = cleanVal(row['Beginning']);
+    const duration = cleanVal(row['Duration of Programme']);
+    const tuition = cleanVal(row['Tuition Fees']);
+    const courseLink = cleanVal(row['Course Details Link']);
 
     if (!courseName || !uniName) continue;
 
