@@ -5,14 +5,17 @@ exports.getMyGroups = async (req, res) => {
     try {
         const userId = req.user.id;
         const result = await pool.query(`
-      SELECT cg.id, cg.name, u.name AS university_name,
-        p.name AS course_name, p.degree_type
+      SELECT cg.id, cg.name, 
+        COALESCE(u.name, '') AS university_name,
+        COALESCE(p.name, '') AS course_name, 
+        p.degree_type,
+        cm.joined_at
       FROM chat_members cm
       JOIN chat_groups cg ON cm.group_id = cg.id
-      JOIN universities u ON cg.university_id = u.id
+      LEFT JOIN universities u ON cg.university_id = u.id
       LEFT JOIN programs p ON cg.program_id = p.id
       WHERE cm.user_id = $1
-      ORDER BY cg.name ASC;
+      ORDER BY cm.joined_at DESC;
     `, [userId]);
 
         res.json({ success: true, data: result.rows });
