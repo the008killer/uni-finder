@@ -40,7 +40,7 @@ function Home() {
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename="/unifinder">
         <div className="min-h-screen flex flex-col bg-slate-50">
           <Navbar />
           <main className="flex-grow">
