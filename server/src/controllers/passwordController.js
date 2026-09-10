@@ -4,25 +4,31 @@ const crypto = require('crypto');
 const { sendEmail } = require('../config/mailer');
 
 exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  console.log(`\[PASSWORD RESET] Request received for: "${email}"`);
+
   try {
-    const { email } = req.body;
     if (!email || !email.trim()) {
+      console.log('[PASSWORD RESET] Rejected: Email parameter is empty');
       return res.status(400).json({ success: false, error: 'Email is required' });
     }
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. Find user by email or username
+    // 1. Query Database
+    console.log(`[PASSWORD RESET] Querying database for email or username matching: "${cleanEmail}"`);
     const userRes = await pool.query(
       'SELECT id, email, username FROM users WHERE LOWER(email) = $1 OR LOWER(username) = $1',
       [cleanEmail]
     );
 
+    console.log(`[PASSWORD RESET] Database query returned ${userRes.rows.length} matching rows`);
+
     if (userRes.rows.length === 0) {
-      console.log(`Password reset requested for NON-EXISTENT email/username: "${cleanEmail}"`);
-      return res.json({
-        success: true,
-        message: 'If an account exists with that email, a reset link has been sent.'
+      console.log(`[PASSWORD RESET] Email/Username "${cleanEmail}" does not exist in the database.`);
+      return res.json({ 
+        success: true, 
+        message: 'If an account exists with that email, a reset link has been sent.' 
       });
     }
 
@@ -30,24 +36,28 @@ exports.forgotPassword = async (req, res) => {
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetExpires = new Date(Date.now() + 3600000); // 1 hour
 
-    // 2. Save token in PostgreSQL
+    // 2. Save token
+    console.log(`[PASSWORD RESET] Saving reset token to database for user ID: ${user.id} (${user.username})`);
     await pool.query(
       `UPDATE users 
        SET password_reset_token = $1, password_reset_expires = $2 
        WHERE id = $3`,
       [resetToken, resetExpires, user.id]
     );
+    console.log('[PASSWORD RESET] Token saved successfully');
 
     // 3. Build reset URL
     const resetUrl = `https://www.adhikariashwin0.com.np/unifinder/#/reset-password/${resetToken}`;
+    console.log(`[PASSWORD RESET] Generated Link: ${resetUrl}`);
 
-    // 4. Send response immediately (50ms response to prevent timeouts)
-    res.json({
-      success: true,
-      message: 'If an account exists with that email, a reset link has been sent.'
+    // 4. Return instant response
+    res.json({ 
+      success: true, 
+      message: 'If an account exists with that email, a reset link has been sent.' 
     });
 
-    // 5. Send email in background (non-blocking)
+    // 5. Send email in background
+    console.log(`[PASSWORD RESET] Dispatching email in background to: ${user.email}`);
     sendEmail(
       user.email,
       'UniFinder — Password Reset Request',
@@ -64,13 +74,17 @@ exports.forgotPassword = async (req, res) => {
         <p style="font-size: 12px; color: #64748b;">Or copy this link:<br/><a href="${resetUrl}">${resetUrl}</a></p>
       </div>
       `
-    ).catch(err => {
-      console.error('Background mailer error:', err.message);
-      console.log(`Fallback Reset Link for ${user.email}:\n${resetUrl}`);
+    )
+    .then(() => {
+      console.log(`[PASSWORD RESET] Email successfully sent to ${user.email}`);
+    })
+    .catch(err => {
+      console.error('[PASSWORD RESET] Background mailer failed:', err.message);
+      console.log(`[FALLBACK] Use this manual link for ${user.email}:\n${resetUrl}`);
     });
 
   } catch (err) {
-    console.error('❌ Forgot password error:', err.message);
+    console.error('[PASSWORD RESET] Fatal internal error:', err.message);
     res.status(500).json({ success: false, error: 'Server error processing request' });
   }
 };
