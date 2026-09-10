@@ -22,6 +22,7 @@ import {
 } from "../components/common/Icons";
 import { useAuth } from "../context/AuthContext";
 import { isValidData } from "../utils/helpers";
+import CardSkeleton from "../components/common/CardSkeleton";
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -48,20 +49,23 @@ export default function Search() {
   const maxFee = searchParams.get("maxFee") || "";
   const page = parseInt(searchParams.get("page") || "1", 10);
 
-  // Fetch Broad Filter dropdown options once on mount
+  const [localSearch, setLocalSearch] = useState(q);
+
+  // Debounce the search input: wait 400ms after typing stops before updating URL
   useEffect(() => {
-    async function loadFilters() {
-      try {
-        const res = await fetchFilters();
-        if (res.data.success) {
-          setFilterOptions(res.data.data);
-        }
-      } catch (err) {
-        console.error("Failed to load filters:", err);
+    const delayDebounce = setTimeout(() => {
+      // Only update URL parameters if localSearch actually differs from current URL q
+      if (localSearch !== q) {
+        updateFilters({ q: localSearch });
       }
-    }
-    loadFilters();
-  }, []);
+    }, 400); // 400ms delay
+
+    return () => clearTimeout(delayDebounce);
+  }, [localSearch]);
+
+  useEffect(() => {
+    setLocalSearch(q);
+  }, [q]);
 
   // Fetch Programs whenever search parameters or page changes
   useEffect(() => {
@@ -155,10 +159,10 @@ export default function Search() {
       <div className="relative mb-6 sm:mb-8 w-full max-w-2xl">
         <input
           type="text"
-          placeholder="Search courses (e.g. AI, Embedded Computing, Robotics, Finance...)"
-          value={q}
-          onChange={(e) => updateFilters({ q: e.target.value })}
-          className="w-full pl-10 pr-3 py-2.5 sm:py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 text-xs sm:text-sm"
+          placeholder="Search by degree name, topic (e.g. AI, Embedded, Robotics, Business)..."
+          value={localSearch}
+          onChange={(e) => setLocalSearch(e.target.value)} // updates instantly for high responsive typing feel
+          className="w-full pl-11 pr-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 text-slate-900 text-sm"
         />
         <SearchIcon className="absolute left-3.5 top-3 sm:top-3.5 w-4 h-4 text-slate-400" />
       </div>
@@ -280,11 +284,10 @@ export default function Search() {
           </div>
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 space-y-3">
-              <div className="w-7 h-7 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-xs text-slate-500 font-medium">
-                Searching matching programs...
-              </p>
+            <div className="space-y-3 w-full">
+              {[...Array(4)].map((_, i) => (
+                <CardSkeleton key={i} />
+              ))}
             </div>
           ) : programs.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-xl p-8 sm:p-12 text-center">
@@ -336,13 +339,19 @@ export default function Search() {
                         </span>
                       )}
                       {isValidData(prog.language) && (
-                        <span className="bg-slate-100 text-slate-700 text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded flex items-center gap-1 uppercase shrink-0" title="Language">
+                        <span
+                          className="bg-slate-100 text-slate-700 text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded flex items-center gap-1 uppercase shrink-0"
+                          title="Language"
+                        >
                           <GlobeIcon className="w-2.5 h-2.5" />
                           {prog.language}
                         </span>
                       )}
                       {isValidData(prog.tuition_fee_eur) && (
-                        <span className="bg-slate-100 text-slate-700 text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded flex items-center gap-1 shrink-0" title="Tuition Fee">
+                        <span
+                          className="bg-slate-100 text-slate-700 text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded flex items-center gap-1 shrink-0"
+                          title="Tuition Fee"
+                        >
                           <EuroIcon className="w-2.5 h-2.5" />
                           {parseFloat(prog.tuition_fee_eur) === 0
                             ? "Free"
@@ -350,7 +359,10 @@ export default function Search() {
                         </span>
                       )}
                       {isValidData(prog.duration_semesters) && (
-                        <span className="bg-slate-100 text-slate-700 text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded shrink-0" title="Course Duration">
+                        <span
+                          className="bg-slate-100 text-slate-700 text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded shrink-0"
+                          title="Course Duration"
+                        >
                           {prog.duration_semesters} Semesters
                         </span>
                       )}
@@ -360,7 +372,8 @@ export default function Search() {
                   {/* Actions Block */}
                   <div className="flex sm:flex-col justify-between sm:justify-center items-center sm:items-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
                     <Link
-                      to={`/chat?group=${prog.chat_group_id}`} title="Ask about the Course"
+                      to={`/chat?group=${prog.chat_group_id}`}
+                      title="Ask about the Course"
                       className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3.5 py-1.5 sm:py-2 rounded-lg text-center transition flex items-center justify-center gap-1.5 shadow-sm shrink-0"
                     >
                       <ChatIcon className="w-3 h-3 text-white" />

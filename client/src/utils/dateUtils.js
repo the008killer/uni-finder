@@ -40,3 +40,24 @@ export function groupMessagesByDate(messages) {
 
   return groups;
 }
+
+export function formatLocalTime(dateStr) {
+  if (!dateStr) return '';
+  
+  let utcStr = dateStr;
+  
+  // If the date string doesn't end with 'Z' or contain a offset like '+02:00',
+  // it came raw from PostgreSQL. We append 'Z' to force UTC parsing.
+  if (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+')) {
+    // Convert 'YYYY-MM-DD HH:MM:SS' to ISO format 'YYYY-MM-DDTHH:MM:SSZ'
+    utcStr = dateStr.replace(' ', 'T') + 'Z';
+  }
+
+  const date = new Date(utcStr);
+  
+  // Natively reads user system clock settings
+  return date.toLocaleTimeString(navigator.language, { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+}
