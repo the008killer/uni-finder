@@ -144,22 +144,40 @@ exports.verify2FALogin = async (req, res) => {
       return res.status(400).json({ success: false, error: 'User ID and code are required' });
     }
 
-    const userRes = await pool.query('SELECT two_factor_secret FROM users WHERE id = $1', [userId]);
-    const secret = userRes.rows[0]?.two_factor_secret;
+    const userRes = await pool.query(
+      'SELECT id, username, email, avatar_url, two_factor_secret FROM users WHERE id = $1',
+      [userId]
+    );
 
-    if (!secret) {
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const user = userRes.rows[0];
+
+    if (!user.two_factor_secret) {
       return res.status(400).json({ success: false, error: '2FA is not configured for this account' });
     }
 
-    const isValid = verifyTOTP(token, secret);
+    const isValid = verifyTOTP(token, user.two_factor_secret);
     if (!isValid) {
-      return res.status(400).json({ success: false, error: 'Invalid 2FA code' });
+      return res.status(400).json({ success: false, error: 'Invalid 2FA code. Please try again.' });
     }
 
     const jwt = require('jsonwebtoken');
-    const jwtToken = jwt.sign({ id: userId }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
+    const jwtToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
 
-    res.json({ success: true, token: jwtToken });
+    // Return token AND user object
+    res.json({
+      success: true,
+      token: jwtToken,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        avatar_url: user.avatar_url,
+      }
+    });
   } catch (err) {
     console.error('2FA login error:', err.message);
     res.status(500).json({ success: false, error: err.message });

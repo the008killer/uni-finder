@@ -3,9 +3,9 @@ const nodemailer = require('nodemailer');
 const port = parseInt(process.env.SMTP_PORT, 10) || 465;
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtppro.zoho.com',
+  host: process.env.SMTP_HOST || 'smtp.zoho.com',
   port: port,
-  secure: port === 465, 
+  secure: true, 
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
@@ -13,13 +13,14 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false,
   },
-  connectionTimeout: 10000, 
-  greetingTimeout: 10000,
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 15000,
 });
 
 const sendEmail = async (to, subject, html) => {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.log('\n[DEV MODE] Password reset email logged to console:');
+    console.log('\n [DEV MODE] Password reset email logged to console:');
     console.log(`   To: ${to}`);
     console.log(`   Subject: ${subject}`);
     console.log(`   Body: ${html}\n`);
