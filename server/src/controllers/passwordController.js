@@ -40,9 +40,10 @@ exports.forgotPassword = async (req, res) => {
     );
 
     // Build reset URL compatible with HashRouter
-    let clientUrl = process.env.CLIENT_URL || 'https://adhikariashwin0.com.np/unifinder';
-    if (clientUrl.endsWith('/')) clientUrl = clientUrl.slice(0, -1);
-
+    let clientUrl = (process.env.CLIENT_URL || 'https://adhikariashwin0.com.np/unifinder').replace(/\/+$/, '');
+    if (!clientUrl.includes('/unifinder')) {
+      clientUrl = `${clientUrl}/unifinder`;
+    }
     const resetUrl = `${clientUrl}/#/reset-password/${resetToken}`;
 
     // Send email safely (catches errors internally so route never crashes)

@@ -67,6 +67,20 @@ export default function Search() {
     setLocalSearch(q);
   }, [q]);
 
+  useEffect(() => {
+    async function loadFilters() {
+      try {
+        const res = await fetchFilters();
+        if (res.data.success) {
+          setFilterOptions(res.data.data);
+        }
+      } catch (err) {
+        console.error("Failed to load filters:", err);
+      }
+    }
+    loadFilters();
+  }, []);
+
   // Fetch Programs whenever search parameters or page changes
   useEffect(() => {
     async function loadPrograms() {
@@ -264,8 +278,8 @@ export default function Search() {
               onChange={(e) => updateFilters({ maxFee: e.target.value })}
               className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900"
             >
-              <option value="">Any Tuition / Free</option>
-              <option value="0">Free Tuition Only</option>
+              <option value="">Any Tuition</option>
+              <option value="0">Free Tuition</option>
               <option value="1000">Max €1,000 / Semester</option>
               <option value="5000">Max €5,000 / Semester</option>
               <option value="10000">Max €10,000 / Semester</option>
