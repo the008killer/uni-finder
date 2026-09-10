@@ -18,6 +18,10 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 app.use(express.json());
+app.use((req, res, next) => {
+  console.log(`[HTTP] ${req.method} ${req.originalUrl}`);
+  next();
+})
 
 // Rate Limiters
 app.use('/api/programs', apiLimiter);
@@ -28,6 +32,7 @@ app.use('/api/password/forgot', authLimiter);
 
 // Mount API routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/chat', require('./routes/chat'));
 app.use('/api/filters', require('./routes/filters'));
 app.use('/api/programs', require('./routes/programs'));
 app.use('/api/universities', require('./routes/universities'));
