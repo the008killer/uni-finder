@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { fetchUnreadCount, markNotificationsRead } from '../services/api';
 
-const SOCKET_URL = 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
 export function useNotifications(user) {
     const [unreadCount, setUnreadCount] = useState(0);
