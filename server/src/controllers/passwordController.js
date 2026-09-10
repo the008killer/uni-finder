@@ -19,9 +19,10 @@ exports.forgotPassword = async (req, res) => {
     );
 
     if (userRes.rows.length === 0) {
-      return res.json({ 
-        success: true, 
-        message: 'If an account exists with that email, a reset link has been sent.' 
+      console.log(`Password reset requested for NON-EXISTENT email/username: "${cleanEmail}"`);
+      return res.json({
+        success: true,
+        message: 'If an account exists with that email, a reset link has been sent.'
       });
     }
 
@@ -41,9 +42,9 @@ exports.forgotPassword = async (req, res) => {
     const resetUrl = `https://www.adhikariashwin0.com.np/unifinder/#/reset-password/${resetToken}`;
 
     // 4. Send response immediately (50ms response to prevent timeouts)
-    res.json({ 
-      success: true, 
-      message: 'If an account exists with that email, a reset link has been sent.' 
+    res.json({
+      success: true,
+      message: 'If an account exists with that email, a reset link has been sent.'
     });
 
     // 5. Send email in background (non-blocking)
@@ -95,9 +96,9 @@ exports.resetPassword = async (req, res) => {
     );
 
     if (userRes.rows.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid or expired reset token. Please request a new link.' 
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired reset token. Please request a new link.'
       });
     }
 
