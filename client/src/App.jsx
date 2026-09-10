@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { HashRouter  as Router, Routes, Route, Link } from "react-router-dom";
 import Navbar from "./components/layout/Navbar";
 import Search from "./pages/Search";
 import ProgramDetail from "./pages/ProgramDetails";
@@ -40,7 +40,7 @@ function Home() {
 export default function App() {
   return (
     <AuthProvider>
-      <Router basename="/unifinder">
+      <Router>
         <div className="min-h-screen flex flex-col bg-slate-50">
           <Navbar />
           <main className="flex-grow">
