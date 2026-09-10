@@ -1,6 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
-import { fetchMyChatGroups, leaveChatGroup } from "../services/api";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  fetchMyChatGroups,
+  leaveChatGroup,
+  joinChatGroup,
+} from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useChat } from "../hooks/useChat";
 import {
@@ -31,15 +35,16 @@ const SECTIONS = [
 ];
 
 export default function Chat() {
-  const { user } = useAuth();
-  const [searchParams] = useSearchParams();
-  const initialGroup = searchParams.get("group");
+  const { user, loading: authLoading } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialGroupId = searchParams.get("group");
 
   const [groups, setGroups] = useState([]);
-  const [activeGroupId, setActiveGroupId] = useState(initialGroup || null);
+  const [activeGroupId, setActiveGroupId] = useState(initialGroupId || null);
   const [activeSection, setActiveSection] = useState("general");
+
   const [messageInput, setMessageInput] = useState("");
-  const [showSidebar, setShowSidebar] = useState(!initialGroup);
+  const [showSidebar, setShowSidebar] = useState(!initialGroupId);
   const [floatingDate, setFloatingDate] = useState(null);
 
   const messagesEndRef = useRef(null);
@@ -53,13 +58,36 @@ export default function Chat() {
   );
   const grouped = groupMessagesByDate(messages);
 
-  // Load user's chat groups
-  useEffect(() => {
+  // Helper to load user's real joined groups
+  const loadMyGroups = useCallback(async () => {
     if (!user) return;
-    fetchMyChatGroups()
-      .then((res) => res.data.success && setGroups(res.data.data))
-      .catch(() => {});
+    try {
+      const res = await fetchMyChatGroups();
+      if (res.data.success) {
+        setGroups(res.data.data);
+      }
+    } catch (err) {
+      console.error("Failed to load chat groups:", err);
+    }
   }, [user]);
+
+  // Load groups on mount and when user logs in
+  useEffect(() => {
+    loadMyGroups();
+  }, [loadMyGroups]);
+
+  // Join group on arrival from link, then fetch updated list
+  useEffect(() => {
+    if (initialGroupId && user) {
+      joinChatGroup(initialGroupId)
+        .then(() => {
+          setActiveGroupId(initialGroupId);
+          setShowSidebar(false);
+          loadMyGroups(); // Syncs sidebar list immediately
+        })
+        .catch(() => {});
+    }
+  }, [initialGroupId, user, loadMyGroups]);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -99,6 +127,7 @@ export default function Chat() {
 
   const selectGroup = (id) => {
     setActiveGroupId(id);
+    setSearchParams({ group: id }); // Keeps query param in browser in sync
     setShowSidebar(false);
   };
 
@@ -113,13 +142,24 @@ export default function Chat() {
 
     try {
       await leaveChatGroup(activeGroupId);
-      setGroups((prev) => prev.filter((g) => g.id != activeGroupId));
+      setGroups((prev) =>
+        prev.filter((g) => String(g.id) !== String(activeGroupId)),
+      );
       setActiveGroupId(null);
+      setSearchParams({}); // Clear query parameters on leave
       setShowSidebar(true);
     } catch (err) {
       console.error("Leave failed:", err);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center py-28">
+        <div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -135,7 +175,9 @@ export default function Chat() {
     );
   }
 
-  const activeGroup = groups.find((g) => g.id == activeGroupId);
+  const activeGroup = groups.find(
+    (g) => String(g.id) === String(activeGroupId),
+  );
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] bg-slate-50 overflow-hidden">
@@ -155,11 +197,23 @@ export default function Chat() {
 
         <div className="flex-1 overflow-y-auto">
           {groups.length === 0 ? (
-            <div className="p-6 text-center">
-              <GraduationCapIcon className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-              <p className="text-xs text-slate-400">
-                No groups yet. Find a course and click "Peer Chat" to join.
-              </p>
+            <div className="p-6 text-center space-y-3">
+              <GraduationCapIcon className="w-10 h-10 text-slate-300 mx-auto" />
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-slate-700">
+                  No chat groups joined yet
+                </p>
+                <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
+                  Find a course on the search page and click "Peer Chat" to join
+                  the discussion.
+                </p>
+              </div>
+              <Link
+                to="/search"
+                className="inline-block bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition"
+              >
+                Find Courses
+              </Link>
             </div>
           ) : (
             groups.map((g) => (
@@ -290,7 +344,7 @@ export default function Chat() {
                   }
 
                   const msg = item;
-                  const isMe = msg.sender?.id === user.id;
+                  const isMe = String(msg.sender?.id) === String(user.id);
                   return (
                     <div
                       key={msg.id}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import {
   getProfile,
   updateProfile,
@@ -94,11 +94,13 @@ function NotificationsTab({ user }) {
 }
 
 export default function Profile() {
-  const { user: authUser, updateUser } = useAuth();
+  const { user: authUser, logout, updateUser, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
-   const tab = searchParams.get('tab') || 'bookmarks';
+  const tab = searchParams.get('tab') || 'bookmarks';
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleTabChange = (newTab) => {
     setSearchParams({ tab: newTab });
@@ -121,6 +123,11 @@ export default function Profile() {
   const [twoFactorError, setTwoFactorError] = useState("");
   const [twoFactorLoading, setTwoFactorLoading] = useState(false);
 
+  useEffect(() => {
+    if (!authLoading && !authUser) {
+      navigate('/login');
+    }
+  }, [authUser, authLoading, navigate]);
   const handleStart2FASetup = async () => {
     setTwoFactorError("");
     setTwoFactorLoading(true);
@@ -234,7 +241,7 @@ export default function Profile() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center py-28">
         <div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></div>

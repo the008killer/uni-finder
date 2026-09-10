@@ -5,7 +5,7 @@ const port = parseInt(process.env.SMTP_PORT, 10) || 465;
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.zoho.com',
   port: port,
-  secure: true, 
+  secure: port === 465, 
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
