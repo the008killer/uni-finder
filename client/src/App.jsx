@@ -1,10 +1,16 @@
-// client/src/App.jsx
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import Navbar from './components/layout/Navbar';
-import Search from './pages/Search';
-import ProgramDetail from './pages/ProgramDetail';
-import UniversityDetail from './pages/UniversityDetails';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import Navbar from "./components/layout/Navbar";
+import Search from "./pages/Search";
+import ProgramDetail from "./pages/ProgramDetails";
+import UniversityDetail from "./pages/UniversityDetails";
+import { AuthProvider } from "./context/AuthContext";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import Profile from "./pages/Profile";
+import Chat from "./pages/Chat";
 
 function Home() {
   return (
@@ -16,11 +22,12 @@ function Home() {
         Find Your Ideal University Degree & Connect With Peers
       </h1>
       <p className="text-lg text-slate-600 mt-4 max-w-2xl mx-auto">
-        Search thousands of Bachelor & Master programs in German or English. Compare public & private universities, and join course chat groups.
+        Search thousands of Bachelor & Master programs in German or English.
+        Compare public & private universities, and join course chat groups.
       </p>
       <div className="mt-8 flex justify-center gap-4">
-        <Link 
-          to="/search" 
+        <Link
+          to="/search"
           className="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition"
         >
           Explore Courses
@@ -32,19 +39,30 @@ function Home() {
 
 export default function App() {
   return (
-    <Router>
-      <div className="min-h-screen flex flex-col bg-slate-50">
-        <Navbar />
-        <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/programs/:id" element={<ProgramDetail />} />
-            <Route path="/universities/:id" element={<UniversityDetail />} />
-            <Route path="/chat" element={<div className="p-8 text-center text-slate-600 font-semibold">Student Chat Page (Building in next step!)</div>} />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <div className="min-h-screen flex flex-col bg-slate-50">
+          <Navbar />
+          <main className="flex-grow">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/search" element={<Search />} />
+              <Route path="/programs/:id" element={<ProgramDetail />} />
+              <Route path="/universities/:id" element={<UniversityDetail />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route
+                path="/reset-password/:token"
+                element={<ResetPassword />}
+              />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/chat" element={<Chat />} />
+              <Route path="/bookmarks" element={<Profile />} />
+            </Routes>
+          </main>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }

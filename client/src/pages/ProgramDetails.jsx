@@ -1,7 +1,11 @@
 // client/src/pages/ProgramDetail.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { fetchProgramById } from "../services/api";
+import {
+  fetchProgramById,
+  toggleBookmark,
+  checkBookmarkStatus,
+} from "../services/api";
 import UniLogo from "../components/common/UniLogo";
 import {
   UniversityIcon,
@@ -14,13 +18,19 @@ import {
   ArrowLeftIcon,
   ExternalLinkIcon,
   CalendarIcon,
+  BookmarkOutlineIcon,
 } from "../components/common/Icons";
+import { useAuth } from "../context/AuthContext";
+import { isValidData } from "../utils/helpers";
 
 export default function ProgramDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [program, setProgram] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
   useEffect(() => {
     async function loadProgram() {
@@ -29,6 +39,13 @@ export default function ProgramDetail() {
         if (res.data.success) {
           setProgram(res.data.data);
         }
+        // Check bookmark status in the same pass if user is logged in
+        if (user) {
+          const bmRes = await checkBookmarkStatus(id);
+          if (bmRes.data.success) {
+            setIsBookmarked(bmRes.data.bookmarked);
+          }
+        }
       } catch (err) {
         console.error("Failed to load program:", err);
       } finally {
@@ -36,7 +53,27 @@ export default function ProgramDetail() {
       }
     }
     loadProgram();
-  }, [id]);
+  }, [id, user]);
+
+  // Toggle bookmark handler
+  const handleBookmarkToggle = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    setBookmarkLoading(true);
+    try {
+      const res = await toggleBookmark(id);
+      if (res.data.success) {
+        setIsBookmarked(res.data.bookmarked);
+      }
+    } catch (err) {
+      console.error("Failed to toggle bookmark:", err);
+    } finally {
+      setBookmarkLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -123,60 +160,80 @@ export default function ProgramDetail() {
             </Link>
 
             <button
-              onClick={() => alert("Bookmark feature coming in Phase 3!")}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2 w-full"
+              onClick={handleBookmarkToggle} title="Bookmark Course"
+              disabled={bookmarkLoading}
+              className={`text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2 w-full shadow-sm ${
+                isBookmarked
+                  ? "bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
             >
-              <BookmarkIcon className="w-3.5 h-3.5 text-slate-500" />
-              <span>Save Course</span>
+              {isBookmarked ? (
+                <>
+                  <BookmarkIcon className="w-4 h-4 text-brand-600" />
+                  <span>Saved</span>
+                </>
+              ) : (
+                <>
+                  <BookmarkOutlineIcon className="w-4 h-4 text-slate-500" />
+                  <span>Save Course</span>
+                </>
+              )}
             </button>
           </div>
         </div>
 
         {/* Key Attributes Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
-              <BookIcon className="w-3 h-3" />
-              <span>Degree Level</span>
+          {isValidData(program.degree_type) && (
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+              <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+                <BookIcon className="w-3 h-3" />
+                <span>Degree Level</span>
+              </div>
+              <p className="text-base font-bold text-slate-900 uppercase">
+                {program.degree_type}
+              </p>
             </div>
-            <p className="text-base font-bold text-slate-900 uppercase">
-              {program.degree_type || "OTHER"}
-            </p>
-          </div>
+          )}
 
-          <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
-              <GlobeIcon className="w-3 h-3" />
-              <span>Language</span>
+          {isValidData(program.language) && (
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+              <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+                <GlobeIcon className="w-3 h-3" />
+                <span>Language</span>
+              </div>
+              <p className="text-base font-bold text-slate-900 uppercase">
+                {program.language}
+              </p>
             </div>
-            <p className="text-base font-bold text-slate-900 uppercase">
-              {program.language}
-            </p>
-          </div>
+          )}
 
-          <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
-              <EuroIcon className="w-3 h-3" />
-              <span>Tuition Fee</span>
+          {isValidData(program.tuition_fee_eur) && (
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+              <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+                <EuroIcon className="w-3 h-3" />
+                <span>Tuition Fee</span>
+              </div>
+              <p className="text-base font-bold text-slate-900">
+                {parseFloat(program.tuition_fee_eur) === 0
+                  ? "Free Tuition"
+                  : `€${parseFloat(program.tuition_fee_eur).toLocaleString()} / sem`}
+              </p>
             </div>
-            <p className="text-base font-bold text-slate-900">
-              {parseFloat(program.tuition_fee_eur) === 0
-                ? "Free Tuition"
-                : `€${parseFloat(program.tuition_fee_eur).toLocaleString()} / sem`}
-            </p>
-          </div>
+          )}
 
-          <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
-              <CalendarIcon className="w-3 h-3" />
-              <span>Duration</span>
+          {isValidData(program.duration_semesters) && (
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+              <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
+                <CalendarIcon className="w-3 h-3" />
+                <span>Duration</span>
+              </div>
+              <p className="text-base font-bold text-slate-900">
+                {program.duration_semesters} Semesters
+              </p>
             </div>
-            <p className="text-base font-bold text-slate-900">
-              {program.duration_semesters
-                ? `${program.duration_semesters} Semesters`
-                : "Varies"}
-            </p>
-          </div>
+          )}
         </div>
 
         {/* Admission & Language Requirements Section */}
@@ -215,7 +272,7 @@ export default function ProgramDetail() {
           <div className="text-xs text-slate-500">
             Semester Start:{" "}
             <span className="font-semibold text-slate-800">
-              {program.semester_start || "Winter / Summer Semester"}
+              {program.semester_start || 'N/A'}
             </span>
           </div>
 
