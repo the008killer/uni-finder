@@ -6,7 +6,16 @@ const app = express();
 
 app.set('trust proxy', 1);
 
-app.use(cors());
+const corsOptions = {
+  origin: '*', // Or allows dynamic origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 200, // Important for older browsers/proxies
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); 
 app.use(express.json());
 
 // Apply global API rate limit to all database routes
