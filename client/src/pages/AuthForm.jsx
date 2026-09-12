@@ -8,7 +8,7 @@ import {
   updateProfile,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { auth } from '../utils/firebase-client';
 import { useAuth } from '../context/AuthContext';
 import { GraduationCapIcon } from '../components/common/Icons';
 import PasswordStrength from '../components/common/PasswordStrength';

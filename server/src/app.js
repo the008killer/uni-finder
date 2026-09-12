@@ -26,9 +26,6 @@ app.use((req, res, next) => {
 // Rate Limiters
 app.use('/api/programs', apiLimiter);
 app.use('/api/universities', apiLimiter);
-app.use('/api/auth/register', authLimiter);
-app.use('/api/auth/login', authLimiter);
-app.use('/api/password/forgot', authLimiter);
 app.use('/api/auth/session', require('./routes/session'));
 
 // Mount API routes

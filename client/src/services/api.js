@@ -16,20 +16,9 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
-// Auth API Calls
-export const loginUser = (data) => API.post('/auth/login', data);
-export const registerUser = (data) => API.post('/auth/register', data);
-export const getMe = () => API.get('/auth/me');
-
-// 2FA
-export const setup2FA = () => API.post('/2fa/setup');
-export const verify2FSetup = (token) => API.post('/2fa/verify-setup', { token });
-export const verify2FALogin = (userId, token) => API.post('/2fa/verify-login', { userId, token });
-export const disable2FA = (token) => API.post('/2fa/disable', { token });
-
-// Password Reset
-export const forgotPassword = (email) => API.post('/password/forgot', { email });
-export const resetPassword = (token, password) => API.post(`/password/reset/${token}`, { password });
+// Session
+export const establishSession = (data) => API.post('/auth/session', data);
+export const getMe = () => API.get('/profile');
 
 // Profile
 export const getProfile = () => API.get('/profile');

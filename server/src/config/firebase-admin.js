@@ -1,4 +1,5 @@
-const admin = require('firebase-admin');
+const { initializeApp, getApps, cert } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
 
 function getPrivateKey() {
   const key = (process.env.FIREBASE_PRIVATE_KEY || '').trim();
@@ -6,14 +7,30 @@ function getPrivateKey() {
   return key.replace(/^["']|["']$/g, '').replace(/\\n/g, '\n');
 }
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: getPrivateKey(),
-    }),
-  });
+let app;
+const apps = getApps();
+
+if (apps.length > 0) {
+  app = apps[0];
+} else {
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = getPrivateKey();
+
+  if (!projectId || !clientEmail || !privateKey) {
+    console.warn('[FIREBASE ADMIN] Credentials missing in environment variables.');
+  } else {
+    app = initializeApp({
+      credential: cert({
+        projectId,
+        clientEmail,
+        privateKey,
+      }),
+    });
+    console.log('[FIREBASE ADMIN] Initialized successfully.');
+  }
 }
 
-module.exports = admin;
+const auth = app ? getAuth(app) : null;
+
+module.exports = { auth, app };

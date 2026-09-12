@@ -6,8 +6,6 @@ import ProgramDetail from "./pages/ProgramDetails";
 import UniversityDetail from "./pages/UniversityDetails";
 import { AuthProvider } from "./context/AuthContext";
 import AuthForm from "./pages/AuthForm";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import Chat from "./pages/Chat";
 
@@ -50,11 +48,6 @@ export default function App() {
               <Route path="/universities/:id" element={<UniversityDetail />} />
               <Route path="/login" element={<AuthForm />} />
               <Route path="/register" element={<AuthForm />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route
-                path="/reset-password/:token"
-                element={<ResetPassword />}
-              />
               <Route path="/profile" element={<Profile />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/bookmarks" element={<Profile />} />
