@@ -1,56 +1,51 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getMe } from '../services/api';
+import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('unifinder_token') || null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if token exists on initial app load
   useEffect(() => {
-    async function loadUser() {
-      if (token) {
-        try {
-          const res = await getMe();
-          if (res.data.success) {
-            setUser(res.data.user);
-          }
-        } catch (err) {
-          console.error('Session expired or invalid token:', err);
-          logout();
-        }
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const idToken = await firebaseUser.getIdToken();
+        setToken(idToken);
+        setUser({
+          id: firebaseUser.uid,
+          username: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+          email: firebaseUser.email,
+          avatar_url: firebaseUser.photoURL || null,
+        });
+        localStorage.setItem('unifinder_token', idToken);
+      } else {
+        setToken(null);
+        setUser(null);
+        localStorage.removeItem('unifinder_token');
       }
       setLoading(false);
-    }
-    loadUser();
-  }, [token]);
+    });
+    return () => unsubscribe();
+  }, []);
 
-  const login =  async(newToken, userData) => {
-    localStorage.setItem('unifinder_token', newToken);
+  const login = (newToken, userData) => {
     setToken(newToken);
-
-    try {
-      const res = await getMe();
-      if (res.data.success) {
-        setUser(res.data.user);
-      } else {
-        setUser(userData);
-      }
-    } catch {
     setUser(userData);
-    }
+    localStorage.setItem('unifinder_token', newToken);
+  };
+
+  const logout = async () => {
+    await firebaseSignOut(auth);
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('unifinder_token');
   };
 
   const updateUser = (updatedData) => {
-    setUser((prev) => ({ ...prev, ...updatedData }));
-  };
-
-  const logout = () => {
-    localStorage.removeItem('unifinder_token');
-    setToken(null);
-    setUser(null);
+    setUser(prev => ({ ...prev, ...updatedData }));
   };
 
   return (
