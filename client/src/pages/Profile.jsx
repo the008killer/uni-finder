@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useSearchParams,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import {
   getProfile,
   updateProfile,
   removeBookmark,
   fetchNotifications,
   markNotificationsRead,
-  setup2FA,
-  verify2FSetup,
-  disable2FA,
 } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import UserAvatar from "../components/common/UserAvatar";
@@ -23,7 +25,7 @@ import {
   BellIcon,
   BookmarkOutlineIcon,
   CrossOutline,
-  TwoFAIcon
+  TwoFAIcon,
 } from "../components/common/Icons";
 import { isValidData } from "../utils/helpers";
 
@@ -94,11 +96,16 @@ function NotificationsTab({ user }) {
 }
 
 export default function Profile() {
-  const { user: authUser, logout, updateUser, loading: authLoading } = useAuth();
+  const {
+    user: authUser,
+    logout,
+    updateUser,
+    loading: authLoading,
+  } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get('tab') || 'bookmarks';
+  const tab = searchParams.get("tab") || "bookmarks";
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -113,84 +120,6 @@ export default function Profile() {
     avatar_url: "",
   });
   const [saving, setSaving] = useState(false);
-
-  const [show2FAModal, setShow2FAModal] = useState(false);
-  const [twoFactorData, setTwoFactorData] = useState({
-    qrCode: "",
-    secret: "",
-  });
-  const [verificationCode, setVerificationCode] = useState("");
-  const [twoFactorError, setTwoFactorError] = useState("");
-  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
-
-  useEffect(() => {
-    if (!authLoading && !authUser) {
-      navigate('/login');
-    }
-  }, [authUser, authLoading, navigate]);
-  const handleStart2FASetup = async () => {
-    setTwoFactorError("");
-    setTwoFactorLoading(true);
-    try {
-      const res = await setup2FA();
-      if (res.data.success) {
-        setTwoFactorData(res.data.data);
-        setShow2FAModal(true);
-      }
-    } catch (err) {
-      setTwoFactorError(
-        err.response?.data?.error || "Failed to start 2FA setup.",
-      );
-    } finally {
-      setTwoFactorLoading(false);
-    }
-  };
-
-  const handleVerify2FA = async (e) => {
-    e.preventDefault();
-    setTwoFactorError("");
-    setTwoFactorLoading(true);
-    try {
-      const res = await verify2FSetup(verificationCode);
-      if (res.data.success) {
-        setProfile((prev) => ({
-          ...prev,
-          user: { ...prev.user, two_factor_enabled: true },
-        }));
-        setShow2FAModal(false);
-        setVerificationCode("");
-        alert("Two-Factor Authentication is now enabled!");
-      }
-    } catch (err) {
-      setTwoFactorError(
-        err.response?.data?.error || "Invalid verification code.",
-      );
-    } finally {
-      setTwoFactorLoading(false);
-    }
-  };
-
-  const handleDisable2FA = async () => {
-    const code = prompt(
-      "Enter a 6-digit verification code from your authenticator app to disable 2FA:",
-    );
-    if (!code) return;
-
-    try {
-      const res = await disable2FA(code);
-      if (res.data.success) {
-        setProfile((prev) => ({
-          ...prev,
-          user: { ...prev.user, two_factor_enabled: false },
-        }));
-        alert("Two-Factor Authentication has been disabled.");
-      }
-    } catch (err) {
-      alert(
-        err.response?.data?.error || "Failed to disable 2FA. Invalid code.",
-      );
-    }
-  };
 
   useEffect(() => {
     async function load() {
@@ -356,128 +285,43 @@ export default function Profile() {
           </div>
         </div>
       </div>
-      {/* Security & Two-Factor Authentication Settings Card */}
-      <div className="bg-amber border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+      {/* Account Settings / Security Card */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
         <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-          Account Security
+          Account Settings
         </h2>
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-slate-50 border border-slate-100 rounded-xl p-4">
           <div className="space-y-1">
             <h3 className="text-sm font-bold text-slate-900">
-              Two-Factor Authentication (2FA)
+              Change Password
             </h3>
             <p className="text-xs text-slate-500 max-w-xl">
-              Secure your account with an extra authentication layer. When
-              enabled, you must enter a verification code from your
-              authenticator app (like Google Authenticator) during login.
+              Need to update your password? Click the button to receive a secure
+              reset link to your email address (**{user.email}**).
             </p>
           </div>
 
           <div className="shrink-0">
-            {user.two_factor_enabled ? (
-              <button
-                onClick={handleDisable2FA}
-                className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold px-4 py-2.5 rounded-xl transition"
-              >
-                Disable 2FA
-              </button>
-            ) : (
-              <button
-                onClick={handleStart2FASetup}
-                disabled={twoFactorLoading}
-                className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition disabled:opacity-50 flex items-center gap-2"
-              >
-                <TwoFAIcon className="w-4 h-4" />
-                {twoFactorLoading ? "Setting up..." : "Enable 2FA"}
-              </button>
-            )}
+            <button
+              onClick={async () => {
+                try {
+                  const { sendPasswordResetEmail } =
+                    await import("firebase/auth");
+                  const { auth } = await import("../utils/firebase-client");
+                  await sendPasswordResetEmail(auth, user.email);
+                  alert("Password reset email sent! Check your inbox.");
+                } catch (err) {
+                  alert(err.message || "Failed to send reset email.");
+                }
+              }}
+              className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm"
+            >
+              Reset Password
+            </button>
           </div>
         </div>
-
-        {/* 2FA SETUP INTERACTIVE MODAL */}
-        {show2FAModal && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-xl space-y-5 animate-in fade-in zoom-in duration-150">
-              <div className="text-center space-y-1">
-                <h3 className="text-lg font-bold text-slate-900">
-                  Set Up Two-Factor Authentication
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Scan this code inside Google Authenticator or Authy
-                </p>
-              </div>
-
-              {twoFactorError && (
-                <div className="bg-red-50 text-red-600 text-xs p-3 rounded-lg border border-red-200">
-                  {twoFactorError}
-                </div>
-              )}
-
-              <div className="flex flex-col items-center justify-center space-y-4">
-                {/* QR Code image generated on demand */}
-                {twoFactorData.qrCode && (
-                  <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 shadow-inner">
-                    <img
-                      src={twoFactorData.qrCode}
-                      alt="2FA QR Code"
-                      className="w-40 h-40"
-                    />
-                  </div>
-                )}
-
-                <div className="text-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Manual Secret Key
-                  </span>
-                  <p className="font-mono text-xs bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg text-slate-700 select-all select-none">
-                    {twoFactorData.secret}
-                  </p>
-                </div>
-              </div>
-
-              {/* Verification Form */}
-              <form onSubmit={handleVerify2FA} className="space-y-3.5 pt-2">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1 text-center">
-                    Enter 6-Digit Authenticator Code
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={6}
-                    value={verificationCode}
-                    onChange={(e) =>
-                      setVerificationCode(e.target.value.replace(/\D/g, ""))
-                    }
-                    placeholder="000000"
-                    className="w-full text-center text-xl tracking-[0.5em] font-mono px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    disabled={twoFactorLoading || verificationCode.length !== 6}
-                    className="flex-1 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold py-2.5 rounded-xl transition disabled:opacity-50"
-                  >
-                    {twoFactorLoading ? "Verifying..." : "Verify & Enable"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShow2FAModal(false);
-                      setVerificationCode("");
-                    }}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
+
       {/* Tabs */}
       <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
         {tabs.map((t) => (
