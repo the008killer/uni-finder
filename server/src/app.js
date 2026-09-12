@@ -26,17 +26,14 @@ app.use((req, res, next) => {
 // Rate Limiters
 app.use('/api/programs', apiLimiter);
 app.use('/api/universities', apiLimiter);
-app.use('/api/auth/session', require('./routes/session'));
 
 // Mount API routes
-app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth/session', require('./routes/session'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/filters', require('./routes/filters'));
 app.use('/api/programs', require('./routes/programs'));
 app.use('/api/universities', require('./routes/universities'));
 app.use('/api/bookmarks', require('./routes/bookmarks'));
-app.use('/api/2fa', require('./routes/twoFactor'));
-app.use('/api/password', require('./routes/password'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/notifications', require('./routes/notifications'));
 

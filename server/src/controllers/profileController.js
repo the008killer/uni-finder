@@ -1,5 +1,4 @@
 const pool = require('../config/db');
-const bcrypt = require('bcryptjs');
 
 exports.getProfile = async (req, res) => {
   try {
@@ -40,13 +39,21 @@ exports.getProfile = async (req, res) => {
       ORDER BY cm.joined_at DESC
     `, [userId]);
 
+    // Get notification history
+    const notificationsRes = await pool.query(`
+      SELECT * FROM notifications 
+      WHERE user_id = $1 
+      ORDER BY created_at DESC 
+      LIMIT 50
+    `, [userId]);
+
     res.json({
       success: true,
       data: {
         user: userRes.rows[0],
         bookmarks: bookmarksRes.rows,
         chats: chatsRes.rows,
-        notifications: [] // Placeholder for Phase 5
+        notifications: notificationsRes.rows
       }
     });
   } catch (err) {
@@ -83,29 +90,6 @@ exports.updateProfile = async (req, res) => {
     if (err.code === '23505') {
       return res.status(400).json({ success: false, error: 'Username already taken' });
     }
-    res.status(500).json({ success: false, error: err.message });
-  }
-};
-
-exports.changePassword = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { currentPassword, newPassword } = req.body;
-
-    const userRes = await pool.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
-    const isMatch = await bcrypt.compare(currentPassword, userRes.rows[0].password_hash);
-
-    if (!isMatch) {
-      return res.status(400).json({ success: false, error: 'Current password is incorrect' });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(newPassword, salt);
-
-    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, userId]);
-
-    res.json({ success: true, message: 'Password changed successfully' });
-  } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 };
