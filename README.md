@@ -12,8 +12,8 @@ A full-stack web platform helping international students search, filter, and dis
   - Broad filter sidebar: Degree (`Bachelor`, `Master`), Language (`English`, `German`, `Mixed`), University Type (`Public`, `Private`, `Church`), Subject Area, and Max Tuition Fee.
   - Shimmer skeleton loaders and layout-shift prevention.
 
-- **Real Academic Data (DACH Region)**
-  - 388+ German universities (official HRK / Destatis registry) + Top Austrian universities (Uni Wien, TU Wien, WU, Innsbruck, MCI).
+- **Real Academic Data (DE Region)**
+  - 388+ German universities (official HRK / Destatis registry)
   - 1,500+ study programs with tuition fees, duration, semester start, and language proficiency levels (A1–C2).
   - Dynamic university logos with monogram avatar fallbacks.
 
