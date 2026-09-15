@@ -283,64 +283,56 @@ exports.getPrograms = async (req, res) => {
 };
 
 
-exports.getProgramById = async (req, res) => {
+export const getProgramById = async (req, res) => {
   try {
+    const { id } = req.params;
+
     const query = `
       SELECT
         p.*,
 
-        u.id AS university_id,
-        u.name AS university_name,
+        -- University information
+        COALESCE(u.name, p.source_university_name) AS university_name,
         u.name_en AS university_name_en,
-
         COALESCE(u.city, p.source_city) AS city,
-
-        u.state,
-        u.country,
+        u.state AS university_state,
+        u.country AS university_country,
         u.type AS university_type,
-
+        u.category AS university_category,
         u.website AS university_website,
         u.logo_url AS university_logo,
 
-        cg.id AS chat_group_id
+        -- Keep the original DAAD values available too
+        p.source_university_name,
+        p.source_city
 
       FROM programs p
-
       LEFT JOIN universities u
-        ON p.university_id = u.id
-
-      LEFT JOIN chat_groups cg
-        ON cg.program_id = p.id
+        ON u.id = p.university_id
 
       WHERE p.id = $1
+      LIMIT 1
     `;
 
-    const result = await pool.query(
-      query,
-      [req.params.id]
-    );
+    const result = await pool.query(query, [id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: 'Not found'
+        message: "Program not found",
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
-      data: result.rows[0]
+      data: result.rows[0],
     });
+  } catch (error) {
+    console.error("Get program by ID error:", error);
 
-  } catch (err) {
-    console.error(
-      'Program by ID error:',
-      err
-    );
-
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      error: 'Error fetching program'
+      message: "Failed to fetch program",
     });
   }
 };
