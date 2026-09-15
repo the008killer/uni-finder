@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS universities (
     website VARCHAR(500),
     description TEXT,
     logo_url VARCHAR(500),
-    hsk_nr INTEGER UNIQUE,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );

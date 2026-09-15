@@ -334,12 +334,20 @@ export default function Search() {
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 font-medium mt-1">
                         <span className="flex items-center gap-1 break-words">
                           <UniversityIcon className="w-3 h-3 text-slate-400 shrink-0" />
-                          <span>{prog.university_name}</span>
+                          <span>
+                            {prog.university_name ||
+                              prog.source_university_name ||
+                              "University Information unavailable"}
+                          </span>
                         </span>
                         <span className="text-slate-300">•</span>
                         <span className="flex items-center gap-1 text-slate-500 shrink-0">
                           <LocationIcon className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                          <span>{prog.city}</span>
+                          <span>
+                            {prog.city ||
+                              prog.source_city ||
+                              "Location unavailable"}
+                          </span>
                         </span>
                       </div>
                     </div>
