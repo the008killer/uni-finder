@@ -283,7 +283,7 @@ exports.getPrograms = async (req, res) => {
 };
 
 
-export const getProgramById = async (req, res) => {
+exports.getProgramById = async (req, res) => {
   try {
     const { id } = req.params;
 
