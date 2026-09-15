@@ -24,10 +24,10 @@ A full-stack web platform helping international students search, filter, and dis
   - Join/Leave groups and direct group navigation.
 
 - **Authentication & Security**
-  - JWT token authentication with **Email OR Username** login.
-  - Password strength validation meter (min 8 chars, uppercase, lowercase, number, symbol).
-  - Native RFC 6238 **Two-Factor Authentication (2FA)** with QR code scanner (Google Authenticator / Authy compatible, zero external auth libraries).
-  - Password reset delivery via HTTPS API.
+  - **Firebase Authentication** supporting **Google Sign-In** and **Email/Password**.
+  - Password strength validation meter (min 6 chars, uppercase, lowercase, number, symbol).
+  - Automated password reset delivery powered by Firebase.
+  - Verified backend session bridging with **Firebase Admin SDK** and PostgreSQL.
   - API rate-limiting on sensitive auth routes.
 
 - **Bookmarks & Real-Time Notifications**
@@ -41,11 +41,11 @@ A full-stack web platform helping international students search, filter, and dis
 
 | Layer | Technology |
 | :--- | :--- |
-| **Frontend** | React 19, Vite, Tailwind CSS, React Router (HashRouter), Axios, Socket.io-client |
-| **Backend** | Node.js, Express.js, Socket.io, JWT, bcryptjs, native `crypto` (TOTP engine) |
+| **Frontend** | React 19, Vite, Tailwind CSS, React Router (HashRouter),  Firebase Client SDK, Axios, Socket.io-client |
+| **Backend** | Node.js, Express.js, Socket.io, JWT, Firebase Admin SDK |
 | **Database** | PostgreSQL (Neon Serverless) with indexed query architecture |
 | **Mailing** | Resend HTTPS API (Port 443 cloud-compatible) |
-| **Hosting** | GitHub Pages (Frontend), Render (Backend), Neon (Database) |
+| **Hosting** | GitHub Pages (Frontend), Render (Backend), Neon (Database), Firebase (Auth)|
 
 ---
 
@@ -101,7 +101,9 @@ PORT=5000
 DATABASE_URL=your_postgresql_connection_string
 JWT_SECRET=your_super_secret_key
 CLIENT_URL=http://localhost:5173
-RESEND_API_KEY=your_resend_api_key_optional
+FIREBASE_PROJECT_ID=your_firebase_project_id
+FIREBASE_CLIENT_EMAIL=your_firebase_service_account_email
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 Run database migrations and data seeders:
 
@@ -110,8 +112,7 @@ Run database migrations and data seeders:
 node src/db/migrate.js
 
 # Seed universities and study programs
-node src/db/seeds/seedUniversities.js
-node src/db/seeds/seedCourses.js
+node src/db/seeds/seed.js
 ```
 Start the backend server:
 
